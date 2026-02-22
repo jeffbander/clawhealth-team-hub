@@ -1,20 +1,12 @@
-import fs from "fs";
-import path from "path";
-
-// Use /tmp for Vercel serverless (persists within same instance)
-// For local dev, use project root
-const DATA_DIR =
-  process.env.NODE_ENV === "production" ? "/tmp" : path.join(process.cwd(), "data");
-
-const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
-const MESSAGES_FILE = path.join(DATA_DIR, "messages.json");
-const STATUS_FILE = path.join(DATA_DIR, "status.json");
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+/**
+ * GitHub API-based persistent storage for ClawHealth Team Hub.
+ *
+ * Replaces the previous /tmp JSON file approach that lost state on Vercel cold starts.
+ * Stores board state as JSON files in the jeffbander/clawhealth-team-hub repo
+ * under a `data/` directory on a `data` branch, read/written via GitHub Contents API.
+ *
+ * Falls back to in-memory cache with defaults if GitHub is unreachable.
+ */
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +33,14 @@ export interface AgentStatus {
   workingOn: string;
   updatedAt: string;
 }
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
+const REPO_OWNER = "jeffbander";
+const REPO_NAME = "clawhealth-team-hub";
+const DATA_BRANCH = "data";
+const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
 
 // ─── Default Data ────────────────────────────────────────────────────────────
 
@@ -79,58 +79,271 @@ const DEFAULT_STATUS: AgentStatus[] = [
   { agent: "Jeff", workingOn: "", updatedAt: new Date().toISOString() },
 ];
 
-// ─── Read / Write helpers ────────────────────────────────────────────────────
+// ─── In-memory cache with SHA tracking ───────────────────────────────────────
 
-function readJSON<T>(filePath: string, defaults: T): T {
-  ensureDir();
-  try {
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    }
-  } catch {
-    // corrupted file — reset
+interface CacheEntry<T> {
+  data: T;
+  sha: string | null;
+  lastFetched: number;
+}
+
+const cache: {
+  tasks: CacheEntry<Task[]> | null;
+  messages: CacheEntry<Message[]> | null;
+  status: CacheEntry<AgentStatus[]> | null;
+} = {
+  tasks: null,
+  messages: null,
+  status: null,
+};
+
+// Cache TTL: 5 seconds — prevents hammering GitHub API on rapid polling
+const CACHE_TTL = 5000;
+
+// ─── GitHub API helpers ──────────────────────────────────────────────────────
+
+const headers: Record<string, string> = {
+  Accept: "application/vnd.github.v3+json",
+  "User-Agent": "ClawHealth-TeamHub",
+};
+
+if (GITHUB_TOKEN) {
+  headers["Authorization"] = `token ${GITHUB_TOKEN}`;
+}
+
+async function ensureDataBranch(): Promise<void> {
+  // Check if the data branch exists; if not, create it from main
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${DATA_BRANCH}`,
+    { headers }
+  );
+  if (res.ok) return;
+
+  // Get default branch SHA (try master first, then main)
+  let mainRes = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/master`,
+    { headers }
+  );
+  if (!mainRes.ok) {
+    mainRes = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/main`,
+      { headers }
+    );
   }
-  fs.writeFileSync(filePath, JSON.stringify(defaults, null, 2));
-  return defaults;
+  if (!mainRes.ok) {
+    throw new Error("Cannot find default branch to create data branch");
+  }
+  const mainData = await mainRes.json();
+  const sha = mainData.object.sha;
+
+  // Create data branch
+  await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs`,
+    {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: `refs/heads/${DATA_BRANCH}`, sha }),
+    }
+  );
 }
 
-function writeJSON<T>(filePath: string, data: T): void {
-  ensureDir();
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+async function readGitHubFile<T>(filePath: string, defaults: T): Promise<{ data: T; sha: string | null }> {
+  try {
+    const url = `${API_BASE}/${filePath}?ref=${DATA_BRANCH}`;
+    const res = await fetch(url, { headers, cache: "no-store" });
+
+    if (res.status === 404) {
+      // File doesn't exist yet — write defaults and return
+      const sha = await writeGitHubFile(filePath, defaults, null);
+      return { data: defaults, sha };
+    }
+
+    if (!res.ok) {
+      console.error(`GitHub API error (${res.status}): ${await res.text()}`);
+      return { data: defaults, sha: null };
+    }
+
+    const json = await res.json();
+    const content = Buffer.from(json.content, "base64").toString("utf-8");
+    const data = JSON.parse(content) as T;
+    return { data, sha: json.sha };
+  } catch (err) {
+    console.error("GitHub read error:", err);
+    return { data: defaults, sha: null };
+  }
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+async function writeGitHubFile<T>(filePath: string, data: T, sha: string | null): Promise<string | null> {
+  try {
+    const content = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
+    const body: Record<string, unknown> = {
+      message: `Update ${filePath}`,
+      content,
+      branch: DATA_BRANCH,
+    };
+    if (sha) {
+      body.sha = sha;
+    }
 
-export function getTasks(): Task[] {
-  return readJSON(TASKS_FILE, DEFAULT_TASKS);
+    const url = `${API_BASE}/${filePath}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      // If SHA conflict (409), refetch and retry once
+      if (res.status === 409 || res.status === 422) {
+        console.warn(`SHA conflict on ${filePath}, refetching...`);
+        const fresh = await readGitHubFile(filePath, data);
+        // Retry with fresh SHA — but write the NEW data, not the fetched data
+        const retryBody = {
+          message: `Update ${filePath} (retry)`,
+          content,
+          branch: DATA_BRANCH,
+          sha: fresh.sha,
+        };
+        const retryRes = await fetch(url, {
+          method: "PUT",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify(retryBody),
+        });
+        if (retryRes.ok) {
+          const retryJson = await retryRes.json();
+          return retryJson.content?.sha || null;
+        }
+        console.error(`Retry failed for ${filePath}: ${await retryRes.text()}`);
+        return null;
+      }
+      console.error(`GitHub write error (${res.status}): ${errText}`);
+      return null;
+    }
+
+    const json = await res.json();
+    return json.content?.sha || null;
+  } catch (err) {
+    console.error("GitHub write error:", err);
+    return null;
+  }
 }
 
-export function saveTasks(tasks: Task[]): void {
-  writeJSON(TASKS_FILE, tasks);
+// ─── Initialization ──────────────────────────────────────────────────────────
+
+let branchReady = false;
+
+async function ensureReady(): Promise<void> {
+  if (!branchReady && GITHUB_TOKEN) {
+    try {
+      await ensureDataBranch();
+      branchReady = true;
+    } catch (err) {
+      console.error("Failed to ensure data branch:", err);
+    }
+  }
 }
 
-export function getMessages(): Message[] {
-  return readJSON(MESSAGES_FILE, DEFAULT_MESSAGES);
+// ─── Generic cached read/write ───────────────────────────────────────────────
+
+type StoreKey = "tasks" | "messages" | "status";
+
+const FILE_MAP: Record<StoreKey, string> = {
+  tasks: "data/tasks.json",
+  messages: "data/messages.json",
+  status: "data/status.json",
+};
+
+const DEFAULTS_MAP: Record<StoreKey, unknown> = {
+  tasks: DEFAULT_TASKS,
+  messages: DEFAULT_MESSAGES,
+  status: DEFAULT_STATUS,
+};
+
+async function readStore<T>(key: StoreKey): Promise<T> {
+  await ensureReady();
+
+  const cached = cache[key] as CacheEntry<T> | null;
+  if (cached && Date.now() - cached.lastFetched < CACHE_TTL) {
+    return cached.data;
+  }
+
+  if (!GITHUB_TOKEN) {
+    // No token — use in-memory defaults only
+    const defaults = DEFAULTS_MAP[key] as T;
+    if (!cache[key]) {
+      (cache as Record<string, CacheEntry<unknown>>)[key] = {
+        data: defaults,
+        sha: null,
+        lastFetched: Date.now(),
+      };
+    }
+    return (cache[key] as CacheEntry<T>).data;
+  }
+
+  const { data, sha } = await readGitHubFile<T>(FILE_MAP[key], DEFAULTS_MAP[key] as T);
+  (cache as Record<string, CacheEntry<unknown>>)[key] = {
+    data,
+    sha,
+    lastFetched: Date.now(),
+  };
+  return data;
 }
 
-export function saveMessages(messages: Message[]): void {
-  writeJSON(MESSAGES_FILE, messages);
+async function writeStore<T>(key: StoreKey, data: T): Promise<void> {
+  await ensureReady();
+
+  const cached = cache[key] as CacheEntry<T> | null;
+  const currentSha = cached?.sha || null;
+
+  if (GITHUB_TOKEN) {
+    const newSha = await writeGitHubFile(FILE_MAP[key], data, currentSha);
+    (cache as Record<string, CacheEntry<unknown>>)[key] = {
+      data,
+      sha: newSha,
+      lastFetched: Date.now(),
+    };
+  } else {
+    (cache as Record<string, CacheEntry<unknown>>)[key] = {
+      data,
+      sha: null,
+      lastFetched: Date.now(),
+    };
+  }
 }
 
-export function getStatuses(): AgentStatus[] {
-  return readJSON(STATUS_FILE, DEFAULT_STATUS);
+// ─── Public API (async versions) ─────────────────────────────────────────────
+
+export async function getTasks(): Promise<Task[]> {
+  return readStore<Task[]>("tasks");
 }
 
-export function saveStatuses(statuses: AgentStatus[]): void {
-  writeJSON(STATUS_FILE, statuses);
+export async function saveTasks(tasks: Task[]): Promise<void> {
+  return writeStore("tasks", tasks);
 }
 
-export function getNextTaskId(): number {
-  const tasks = getTasks();
+export async function getMessages(): Promise<Message[]> {
+  return readStore<Message[]>("messages");
+}
+
+export async function saveMessages(messages: Message[]): Promise<void> {
+  return writeStore("messages", messages);
+}
+
+export async function getStatuses(): Promise<AgentStatus[]> {
+  return readStore<AgentStatus[]>("status");
+}
+
+export async function saveStatuses(statuses: AgentStatus[]): Promise<void> {
+  return writeStore("status", statuses);
+}
+
+export async function getNextTaskId(): Promise<number> {
+  const tasks = await getTasks();
   return tasks.length > 0 ? Math.max(...tasks.map((t) => t.id)) + 1 : 1;
 }
 
-export function getNextMessageId(): number {
-  const msgs = getMessages();
+export async function getNextMessageId(): Promise<number> {
+  const msgs = await getMessages();
   return msgs.length > 0 ? Math.max(...msgs.map((m) => m.id)) + 1 : 1;
 }

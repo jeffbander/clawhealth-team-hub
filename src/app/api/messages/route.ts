@@ -3,21 +3,21 @@ import { getMessages, saveMessages, getNextMessageId, Message } from "@/lib/stor
 
 // GET /api/messages — return all messages
 export async function GET() {
-  const messages = getMessages();
+  const messages = await getMessages();
   return NextResponse.json({ messages });
 }
 
 // POST /api/messages — add a new message
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const messages = getMessages();
+  const messages = await getMessages();
   const newMsg: Message = {
-    id: getNextMessageId(),
+    id: await getNextMessageId(),
     sender: body.sender || "Manny",
     text: body.text || "",
     time: new Date().toISOString(),
   };
   messages.push(newMsg);
-  saveMessages(messages);
+  await saveMessages(messages);
   return NextResponse.json({ success: true, message: newMsg });
 }

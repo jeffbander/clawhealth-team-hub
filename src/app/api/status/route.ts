@@ -3,7 +3,7 @@ import { getStatuses, saveStatuses } from "@/lib/store";
 
 // GET /api/status — return all agent statuses
 export async function GET() {
-  const statuses = getStatuses();
+  const statuses = await getStatuses();
   return NextResponse.json({ statuses });
 }
 
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const { agent, workingOn } = body;
   if (!agent) return NextResponse.json({ error: "Agent required" }, { status: 400 });
 
-  const statuses = getStatuses();
+  const statuses = await getStatuses();
   const idx = statuses.findIndex((s) => s.agent === agent);
   if (idx >= 0) {
     statuses[idx].workingOn = workingOn || "";
@@ -21,6 +21,6 @@ export async function POST(req: NextRequest) {
   } else {
     statuses.push({ agent, workingOn: workingOn || "", updatedAt: new Date().toISOString() });
   }
-  saveStatuses(statuses);
+  await saveStatuses(statuses);
   return NextResponse.json({ success: true, statuses });
 }
