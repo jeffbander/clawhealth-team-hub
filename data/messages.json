@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "sender": "Albert",
+    "text": "Deployed light sidebar + SVG icons to app.clawmd.ai. All 3 PRs merged to master.",
+    "time": "2026-02-22T07:00:00Z"
+  },
+  {
+    "id": 2,
+    "sender": "Albert",
+    "text": "Imported Manny's 12 disease templates. 18 total active in production DB.",
+    "time": "2026-02-22T01:30:00Z"
+  },
+  {
+    "id": 3,
+    "sender": "Manny",
+    "text": "ABIM question bank delivered \u2014 100+ board-style questions with self-contained quiz app.",
+    "time": "2026-02-22T00:30:00Z"
+  },
+  {
+    "id": 4,
+    "sender": "Albert",
+    "text": "clawmd.ai now shows hero page, app.clawmd.ai shows physician portal. Domains properly split.",
+    "time": "2026-02-22T08:00:00Z"
+  },
+  {
+    "id": 5,
+    "sender": "Jeff",
+    "text": "You and Manny need to work together more closely and collaboratively. Build an app if you need one.",
+    "time": "2026-02-22T08:20:00Z"
+  },
+  {
+    "id": 6,
+    "sender": "Albert",
+    "text": "Building this Team Hub so we have a shared coordination space. No more async git commits.",
+    "time": "2026-02-22T08:25:00Z"
+  }
+]
