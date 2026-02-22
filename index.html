@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawHealth — Team Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#fafafa;color:#1a1a2e;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;background:#1a1a5e;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:16px;height:16px}
+.logo-text{font-weight:700;font-size:15px;color:#1a1a2e;letter-spacing:-.02em}
+.logo-sub{font-size:11px;color:#9ca3af;font-weight:500;margin-left:8px;padding:2px 8px;background:#f3f4f6;border-radius:99px}
+
+/* Stats */
+.stats{display:flex;gap:16px;padding:16px 24px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;flex:1;min-width:140px}
+.stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:700;color:#1a1a2e}
+.stat-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid #e5e7eb;background:#fff}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:#9ca3af;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:#6b7280}
+.tab.active{color:#1a1a5e;border-bottom-color:#1a1a5e}
+
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px;overflow-x:auto}
+@media(max-width:900px){.kanban{grid-template-columns:1fr}}
+.col{background:#f9fafb;border-radius:10px;padding:10px;min-height:300px}
+.col-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin-bottom:8px}
+.col-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7280}
+.col-count{font-size:11px;background:#e5e7eb;color:#6b7280;padding:1px 7px;border-radius:99px;font-weight:600}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#d1d5db}
+.card-title{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:6px;line-height:1.4}
+.card-desc{font-size:11px;color:#9ca3af;margin-bottom:8px;line-height:1.5;display:none}
+.card.expanded .card-desc{display:block}
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px}
+.badge-albert{background:#eef2ff;color:#4338ca}
+.badge-manus{background:#ecfeff;color:#0891b2}
+.badge-jeff{background:#fffbeb;color:#d97706}
+.badge-high{background:#fef2f2;color:#dc2626}
+.badge-med{background:#fffbeb;color:#d97706}
+.badge-low{background:#f0fdf4;color:#16a34a}
+.card-actions{display:none;margin-top:8px;gap:4px}
+.card.expanded .card-actions{display:flex}
+.card-btn{font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-weight:500}
+.card-btn:hover{background:#f3f4f6}
+
+/* Messages */
+.messages{padding:16px 24px;display:none}
+.messages.active{display:block}
+.kanban-wrap{display:block}
+.kanban-wrap.hidden{display:none}
+.msg-list{max-width:680px}
+.msg{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #f3f4f6}
+.msg-avatar{width:32px;height:32px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0}
+.msg-albert .msg-avatar{background:#4338ca}
+.msg-manus .msg-avatar{background:#0891b2}
+.msg-jeff .msg-avatar{background:#d97706}
+.msg-body{flex:1}
+.msg-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.msg-name{font-size:13px;font-weight:600;color:#1a1a2e}
+.msg-time{font-size:11px;color:#9ca3af}
+.msg-text{font-size:13px;color:#4b5563;line-height:1.55}
+.msg-form{display:flex;gap:8px;margin-top:16px;max-width:680px}
+.msg-input{flex:1;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.msg-input:focus{border-color:#1a1a5e}
+.msg-select{padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;outline:none}
+.msg-submit{padding:10px 18px;background:#1a1a5e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.msg-submit:hover{background:#12124a}
+
+/* Add card modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:16px;color:#1a1a2e}
+.modal label{display:block;font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;margin-top:12px}
+.modal input,.modal select,.modal textarea{width:100%;padding:9px 12px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px;font-family:inherit;outline:none}
+.modal textarea{height:60px;resize:vertical}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:#1a1a5e}
+.modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.modal-cancel{padding:8px 16px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+.modal-save{padding:8px 16px;border:none;border-radius:7px;background:#1a1a5e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.add-btn{width:100%;padding:8px;border:1px dashed #d1d5db;border-radius:7px;background:transparent;color:#9ca3af;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
+.add-btn:hover{border-color:#9ca3af;color:#6b7280}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+    <span class="logo-text">ClawHealth</span>
+    <span class="logo-sub">Team Hub</span>
+  </div>
+  <div style="font-size:12px;color:#9ca3af">Albert · Manus · Jeff</div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('board')">Board</div>
+  <div class="tab" onclick="switchTab('feed')">Activity Feed</div>
+</div>
+
+<div class="kanban-wrap" id="kanbanWrap">
+  <div class="kanban" id="kanban"></div>
+</div>
+
+<div class="messages" id="messagesPanel">
+  <div class="msg-list" id="msgList"></div>
+  <div class="msg-form">
+    <select class="msg-select" id="msgSender">
+      <option value="Albert">Albert</option>
+      <option value="Manus">Manus</option>
+      <option value="Jeff">Jeff</option>
+    </select>
+    <input class="msg-input" id="msgInput" placeholder="Post an update..." onkeydown="if(event.key==='Enter')addMsg()">
+    <button class="msg-submit" onclick="addMsg()">Send</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>New Task</h3>
+    <label>Title</label>
+    <input id="fTitle">
+    <label>Assignee</label>
+    <select id="fAssignee"><option>Albert</option><option>Manus</option><option>Jeff</option></select>
+    <label>Priority</label>
+    <select id="fPriority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+    <label>Column</label>
+    <select id="fCol"><option value="backlog">Backlog</option><option value="progress">In Progress</option><option value="review">Review</option><option value="done">Done</option></select>
+    <label>Description</label>
+    <textarea id="fDesc"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-save" onclick="saveCard()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLS = ['backlog','progress','review','done'];
+const COL_LABELS = {backlog:'Backlog',progress:'In Progress',review:'Review',done:'Done'};
+
+const DEFAULT_CARDS = [
+  {id:1,title:'Patient risk score trends chart',assignee:'Albert',priority:'med',col:'backlog',desc:'Chart showing patient risk level changes over time'},
+  {id:2,title:'Voice strategy document',assignee:'Manus',priority:'high',col:'backlog',desc:'ElevenLabs integration strategy — which patients get calls vs SMS, frequency, voice persona'},
+  {id:3,title:'Prompt architecture clinical review',assignee:'Manus',priority:'high',col:'backlog',desc:'Review three-tier prompt system for clinical accuracy edge cases'},
+  {id:4,title:'Pencil/Figma MCP research',assignee:'Manus',priority:'med',col:'backlog',desc:'How to use Pencil.dev and Figma MCP for AI-assisted design'},
+  {id:5,title:'Medication interaction checker',assignee:'Albert',priority:'med',col:'backlog',desc:'Flag drug-drug interactions in patient medication lists'},
+  {id:6,title:'Dashboard design polish — remaining pages',assignee:'Albert',priority:'high',col:'progress',desc:'Patients list, patient detail, settings pages need the new light design'},
+  {id:7,title:'ABIM question bank expansion',assignee:'Manus',priority:'med',col:'progress',desc:'Expand beyond initial 100 questions'},
+  {id:8,title:'Multi-agent architecture decision',assignee:'Jeff',priority:'high',col:'review',desc:'Approve or defer 1-agent-per-patient OpenClaw architecture'},
+  {id:9,title:'Joel Landau phone number',assignee:'Jeff',priority:'high',col:'review',desc:'Need phone number to create ClawHealth bot for Joel from Landau portal data'},
+  {id:10,title:'12 disease templates',assignee:'Manus',priority:'high',col:'done',desc:'CKD, COPD, thyroid, obesity, anxiety, DVT/PE, PAD, valvular, post-surgery, hyperlipidemia, chronic pain, sleep apnea'},
+  {id:11,title:'Light sidebar redesign',assignee:'Albert',priority:'high',col:'done',desc:'Replaced dark navy sidebar with clean white sidebar + SVG icons'},
+  {id:12,title:'Patient Timeline feature',assignee:'Albert',priority:'high',col:'done',desc:'Unified chronological event feed with filters and pagination'},
+  {id:13,title:'ABIM Quiz App deployed',assignee:'Manus',priority:'med',col:'done',desc:'100+ cardiology board questions at abim-quiz.vercel.app'},
+  {id:14,title:'Hero page live on clawmd.ai',assignee:'Manus',priority:'high',col:'done',desc:'Patient-facing marketing page deployed to clawmd.ai'},
+  {id:15,title:'Three-tier prompt management',assignee:'Albert',priority:'high',col:'done',desc:'Disease templates + patient overrides + base prompt, all DB-stored and dashboard-editable'},
+  {id:16,title:'Physician Action Center',assignee:'Albert',priority:'high',col:'done',desc:'Messaging, alert resolution with clinical notes, patient inbox'},
+  {id:17,title:'CCM Revenue Engine',assignee:'Albert',priority:'high',col:'done',desc:'Automated patient outreach + billing dashboard with CPT codes'},
+];
+
+const DEFAULT_MSGS = [
+  {sender:'Albert',text:'Deployed light sidebar + SVG icons to app.clawmd.ai. All 3 PRs merged to master.',time:'2026-02-22T07:00:00Z'},
+  {sender:'Albert',text:'Imported Manus\'s 12 disease templates. 18 total active in production DB.',time:'2026-02-22T01:30:00Z'},
+  {sender:'Manus',text:'ABIM question bank delivered — 100+ board-style questions with self-contained quiz app.',time:'2026-02-22T00:30:00Z'},
+  {sender:'Albert',text:'clawmd.ai now shows hero page, app.clawmd.ai shows physician portal. Domains properly split.',time:'2026-02-22T08:00:00Z'},
+  {sender:'Jeff',text:'You and Manus need to work together more closely and collaboratively. Build an app if you need one.',time:'2026-02-22T08:20:00Z'},
+  {sender:'Albert',text:'Building this Team Hub so we have a shared coordination space. No more async git commits.',time:'2026-02-22T08:25:00Z'},
+];
+
+function load(key,def){try{const d=localStorage.getItem(key);return d?JSON.parse(d):def}catch{return def}}
+function save(key,val){localStorage.setItem(key,JSON.stringify(val))}
+
+let cards = load('cards',DEFAULT_CARDS);
+let msgs = load('msgs',DEFAULT_MSGS);
+let nextId = load('nextId',18);
+
+function render(){
+  // Stats
+  const byAssignee = {};
+  cards.filter(c=>c.col!=='done').forEach(c=>{byAssignee[c.assignee]=(byAssignee[c.assignee]||0)+1});
+  const done = cards.filter(c=>c.col==='done').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Albert</div><div class="stat-val">${byAssignee['Albert']||0}</div><div class="stat-sub">active tasks</div></div>
+    <div class="stat"><div class="stat-label">Manus</div><div class="stat-val">${byAssignee['Manus']||0}</div><div class="stat-sub">active tasks</div></div>
+    <div class="stat"><div class="stat-label">Jeff</div><div class="stat-val">${byAssignee['Jeff']||0}</div><div class="stat-sub">approvals needed</div></div>
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-val">${done}</div><div class="stat-sub">tasks done</div></div>
+  `;
+
+  // Kanban
+  const kb = document.getElementById('kanban');
+  kb.innerHTML = COLS.map(col=>{
+    const colCards = cards.filter(c=>c.col===col);
+    return `<div class="col" data-col="${col}">
+      <div class="col-head"><span class="col-title">${COL_LABELS[col]}</span><span class="col-count">${colCards.length}</span></div>
+      ${colCards.map(c=>`
+        <div class="card" id="card-${c.id}" onclick="toggleCard(${c.id})">
+          <div class="card-title">${esc(c.title)}</div>
+          <div class="card-desc">${esc(c.desc||'')}</div>
+          <div class="card-meta">
+            <span class="badge badge-${c.assignee.toLowerCase()}">${c.assignee}</span>
+            ${c.col!=='done'?`<span class="badge badge-${c.priority}">${c.priority}</span>`:''}
+          </div>
+          <div class="card-actions">
+            ${col!=='backlog'?`<button class="card-btn" onclick="event.stopPropagation();moveCard(${c.id},-1)">← Back</button>`:''}
+            ${col!=='done'?`<button class="card-btn" onclick="event.stopPropagation();moveCard(${c.id},1)">Next →</button>`:''}
+            <button class="card-btn" onclick="event.stopPropagation();delCard(${c.id})" style="color:#dc2626">Delete</button>
+          </div>
+        </div>
+      `).join('')}
+      <button class="add-btn" onclick="openModal('${col}')">+ Add task</button>
+    </div>`;
+  }).join('');
+
+  // Messages
+  const ml = document.getElementById('msgList');
+  const sorted = [...msgs].sort((a,b)=>new Date(b.time)-new Date(a.time));
+  ml.innerHTML = sorted.map(m=>`
+    <div class="msg msg-${m.sender.toLowerCase()}">
+      <div class="msg-avatar">${m.sender[0]}</div>
+      <div class="msg-body">
+        <div class="msg-head"><span class="msg-name">${esc(m.sender)}</span><span class="msg-time">${timeAgo(m.time)}</span></div>
+        <div class="msg-text">${esc(m.text)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function timeAgo(iso){
+  const s=Math.floor((Date.now()-new Date(iso).getTime())/1000);
+  if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';
+}
+
+function toggleCard(id){document.getElementById('card-'+id)?.classList.toggle('expanded')}
+
+function moveCard(id,dir){
+  const c=cards.find(x=>x.id===id);if(!c)return;
+  const i=COLS.indexOf(c.col)+dir;
+  if(i>=0&&i<COLS.length){c.col=COLS[i];save('cards',cards);render()}
+}
+
+function delCard(id){
+  if(!confirm('Delete this task?'))return;
+  cards=cards.filter(c=>c.id!==id);save('cards',cards);render();
+}
+
+function openModal(col){
+  document.getElementById('fCol').value=col||'backlog';
+  document.getElementById('fTitle').value='';
+  document.getElementById('fDesc').value='';
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('fTitle').focus();
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+
+function saveCard(){
+  const title=document.getElementById('fTitle').value.trim();
+  if(!title)return;
+  cards.push({id:nextId++,title,assignee:document.getElementById('fAssignee').value,priority:document.getElementById('fPriority').value,col:document.getElementById('fCol').value,desc:document.getElementById('fDesc').value.trim()});
+  save('cards',cards);save('nextId',nextId);closeModal();render();
+}
+
+function addMsg(){
+  const text=document.getElementById('msgInput').value.trim();
+  if(!text)return;
+  msgs.push({sender:document.getElementById('msgSender').value,text,time:new Date().toISOString()});
+  save('msgs',msgs);document.getElementById('msgInput').value='';render();
+}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  if(t==='board'){
+    document.querySelectorAll('.tab')[0].classList.add('active');
+    document.getElementById('kanbanWrap').classList.remove('hidden');
+    document.getElementById('messagesPanel').classList.remove('active');
+  }else{
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.getElementById('kanbanWrap').classList.add('hidden');
+    document.getElementById('messagesPanel').classList.add('active');
+  }
+}
+
+render();
+</script>
+</body>
+</html>
