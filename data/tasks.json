@@ -1,0 +1,138 @@
+[
+  {
+    "id": 1,
+    "title": "Patient risk score trends chart",
+    "assignee": "Albert",
+    "priority": "med",
+    "col": "backlog",
+    "desc": "Chart showing patient risk level changes over time"
+  },
+  {
+    "id": 2,
+    "title": "Voice strategy document",
+    "assignee": "Manny",
+    "priority": "high",
+    "col": "backlog",
+    "desc": "ElevenLabs integration strategy"
+  },
+  {
+    "id": 3,
+    "title": "Prompt architecture clinical review",
+    "assignee": "Manny",
+    "priority": "high",
+    "col": "backlog",
+    "desc": "Review three-tier prompt system for clinical accuracy edge cases"
+  },
+  {
+    "id": 4,
+    "title": "Pencil/Figma MCP research",
+    "assignee": "Manny",
+    "priority": "med",
+    "col": "backlog",
+    "desc": "How to use Pencil.dev and Figma MCP for AI-assisted design"
+  },
+  {
+    "id": 5,
+    "title": "Medication interaction checker",
+    "assignee": "Albert",
+    "priority": "med",
+    "col": "backlog",
+    "desc": "Flag drug-drug interactions in patient medication lists"
+  },
+  {
+    "id": 6,
+    "title": "Dashboard design polish \u2014 remaining pages",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "progress",
+    "desc": "Patients list, patient detail, settings pages need the new light design"
+  },
+  {
+    "id": 7,
+    "title": "ABIM question bank expansion",
+    "assignee": "Manny",
+    "priority": "med",
+    "col": "progress",
+    "desc": "Expand beyond initial 100 questions"
+  },
+  {
+    "id": 8,
+    "title": "Multi-agent architecture decision",
+    "assignee": "Jeff",
+    "priority": "high",
+    "col": "review",
+    "desc": "Approve or defer 1-agent-per-patient OpenClaw architecture"
+  },
+  {
+    "id": 9,
+    "title": "Joel Landau phone number",
+    "assignee": "Jeff",
+    "priority": "high",
+    "col": "review",
+    "desc": "Need phone number to create ClawHealth bot for Joel from Landau portal data"
+  },
+  {
+    "id": 10,
+    "title": "12 disease templates",
+    "assignee": "Manny",
+    "priority": "high",
+    "col": "done",
+    "desc": "CKD, COPD, thyroid, obesity, anxiety, DVT/PE, PAD, valvular, post-surgery, hyperlipidemia, chronic pain, sleep apnea"
+  },
+  {
+    "id": 11,
+    "title": "Light sidebar redesign",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "done",
+    "desc": "Replaced dark navy sidebar with clean white sidebar + SVG icons"
+  },
+  {
+    "id": 12,
+    "title": "Patient Timeline feature",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "done",
+    "desc": "Unified chronological event feed with filters and pagination"
+  },
+  {
+    "id": 13,
+    "title": "ABIM Quiz App deployed",
+    "assignee": "Manny",
+    "priority": "med",
+    "col": "done",
+    "desc": "100+ cardiology board questions at abim-quiz.vercel.app"
+  },
+  {
+    "id": 14,
+    "title": "Hero page live on clawmd.ai",
+    "assignee": "Manny",
+    "priority": "high",
+    "col": "done",
+    "desc": "Patient-facing marketing page deployed to clawmd.ai"
+  },
+  {
+    "id": 15,
+    "title": "Three-tier prompt management",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "done",
+    "desc": "Disease templates + patient overrides + base prompt, all DB-stored and dashboard-editable"
+  },
+  {
+    "id": 16,
+    "title": "Physician Action Center",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "done",
+    "desc": "Messaging, alert resolution with clinical notes, patient inbox"
+  },
+  {
+    "id": 17,
+    "title": "CCM Revenue Engine",
+    "assignee": "Albert",
+    "priority": "high",
+    "col": "done",
+    "desc": "Automated patient outreach + billing dashboard with CPT codes"
+  }
+]
